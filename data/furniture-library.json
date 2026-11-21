@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "note": "All dimensions are in centimeters: width x depth x height. Bed sizes are standard US mattress sizes.",
+  "categories": [
+    { "id": "living", "label": "Living" },
+    { "id": "bedroom", "label": "Bedroom" },
+    { "id": "office", "label": "Office" },
+    { "id": "dining", "label": "Kitchen and dining" },
+    { "id": "rugs", "label": "Rugs" },
+    { "id": "soft", "label": "Cushions and decor" },
+    { "id": "lighting", "label": "Lighting" },
+    { "id": "plants", "label": "Plants" },
+    { "id": "storage", "label": "Entry and storage" }
+  ],
+  "items": [
+    { "id": "sofa", "name": "Sofa", "category": "living", "width": 213, "depth": 91, "height": 86, "shape": "rect", "color": "#D9CCB6", "layer": "furniture", "decor": "sofa" },
+    { "id": "loveseat", "name": "Loveseat", "category": "living", "width": 147, "depth": 89, "height": 86, "shape": "rect", "color": "#D9CCB6", "layer": "furniture", "decor": "sofa" },
+    { "id": "sectional", "name": "Sectional (L-shape)", "category": "living", "width": 254, "depth": 183, "height": 86, "shape": "lshape", "armWidth": 91, "color": "#D9CCB6", "layer": "furniture" },
+    { "id": "armchair", "name": "Armchair", "category": "living", "width": 81, "depth": 86, "height": 86, "shape": "rect", "color": "#CDBFA6", "layer": "furniture", "decor": "armchair" },
+    { "id": "coffee-table", "name": "Coffee table", "category": "living", "width": 107, "depth": 61, "height": 46, "shape": "rect", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "side-table", "name": "Side table", "category": "living", "width": 46, "depth": 46, "height": 56, "shape": "rect", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "tv-stand", "name": "TV stand", "category": "living", "width": 152, "depth": 41, "height": 56, "shape": "rect", "color": "#8B6B4E", "layer": "furniture" },
+    { "id": "tv", "name": "TV (55 in)", "category": "living", "width": 123, "depth": 8, "height": 71, "shape": "rect", "color": "#3A3530", "layer": "furniture", "decor": "tv" },
+
+    { "id": "bed-twin", "name": "Bed (twin)", "category": "bedroom", "width": 99, "depth": 191, "height": 55, "shape": "rect", "color": "#E8DFD0", "layer": "furniture", "decor": "bed" },
+    { "id": "bed-full", "name": "Bed (full)", "category": "bedroom", "width": 137, "depth": 191, "height": 55, "shape": "rect", "color": "#E8DFD0", "layer": "furniture", "decor": "bed" },
+    { "id": "bed-queen", "name": "Bed (queen)", "category": "bedroom", "width": 152, "depth": 203, "height": 55, "shape": "rect", "color": "#E8DFD0", "layer": "furniture", "decor": "bed" },
+    { "id": "nightstand", "name": "Nightstand", "category": "bedroom", "width": 46, "depth": 41, "height": 61, "shape": "rect", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "dresser", "name": "Dresser", "category": "bedroom", "width": 152, "depth": 51, "height": 81, "shape": "rect", "color": "#8B6B4E", "layer": "furniture", "decor": "drawers" },
+    { "id": "closet-organizer", "name": "Closet organizer", "category": "bedroom", "width": 120, "depth": 40, "height": 200, "shape": "rect", "color": "#DCD2C2", "layer": "furniture", "decor": "shelves" },
+    { "id": "mirror", "name": "Floor mirror", "category": "bedroom", "width": 60, "depth": 4, "height": 160, "shape": "rect", "color": "#D5DEDF", "layer": "furniture", "decor": "mirror" },
+
+    { "id": "desk", "name": "Desk", "category": "office", "width": 120, "depth": 60, "height": 75, "shape": "rect", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "office-chair", "name": "Office chair", "category": "office", "width": 66, "depth": 66, "height": 110, "shape": "circle", "color": "#9A958B", "layer": "furniture", "decor": "chair" },
+    { "id": "bookshelf", "name": "Bookshelf", "category": "office", "width": 80, "depth": 30, "height": 180, "shape": "rect", "color": "#C49A6C", "layer": "furniture", "decor": "shelves" },
+    { "id": "wall-shelf", "name": "Wall shelf", "category": "office", "width": 80, "depth": 20, "height": 4, "shape": "rect", "color": "#C49A6C", "layer": "furniture", "wallMounted": true },
+
+    { "id": "kitchen-island", "name": "Kitchen island", "category": "dining", "width": 122, "depth": 61, "height": 91, "shape": "rect", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "bar-stool", "name": "Bar stool", "category": "dining", "width": 41, "depth": 41, "height": 76, "shape": "circle", "color": "#8B6B4E", "layer": "furniture" },
+    { "id": "dining-table", "name": "Dining table", "category": "dining", "width": 152, "depth": 91, "height": 76, "shape": "rect", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "dining-table-round", "name": "Dining table (round)", "category": "dining", "width": 107, "depth": 107, "height": 76, "shape": "circle", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "dining-chair", "name": "Dining chair", "category": "dining", "width": 46, "depth": 53, "height": 86, "shape": "rect", "color": "#B08A62", "layer": "furniture", "decor": "chair" },
+    { "id": "coffee-cart", "name": "Coffee station cart", "category": "dining", "width": 76, "depth": 41, "height": 86, "shape": "rect", "color": "#A7B59A", "layer": "furniture" },
+
+    { "id": "rug-5x8", "name": "Rug 5 x 8 ft", "category": "rugs", "width": 152, "depth": 244, "height": 1, "shape": "rect", "color": "#E6D8C3", "layer": "rugs", "decor": "rug" },
+    { "id": "rug-8x10", "name": "Rug 8 x 10 ft", "category": "rugs", "width": 244, "depth": 305, "height": 1, "shape": "rect", "color": "#E6D8C3", "layer": "rugs", "decor": "rug" },
+    { "id": "rug-runner", "name": "Runner rug", "category": "rugs", "width": 76, "depth": 244, "height": 1, "shape": "rect", "color": "#D9C6A8", "layer": "rugs", "decor": "rug" },
+    { "id": "rug-round", "name": "Round rug", "category": "rugs", "width": 183, "depth": 183, "height": 1, "shape": "circle", "color": "#E6D8C3", "layer": "rugs", "decor": "rug" },
+
+    { "id": "floor-cushion", "name": "Floor cushion", "category": "soft", "width": 61, "depth": 61, "height": 15, "shape": "rect", "color": "#C9A27E", "layer": "furniture", "decor": "cushion" },
+    { "id": "pouf", "name": "Pouf", "category": "soft", "width": 46, "depth": 46, "height": 41, "shape": "circle", "color": "#CBB89A", "layer": "furniture", "decor": "cushion" },
+    { "id": "macrame", "name": "Macrame wall hanging", "category": "soft", "width": 60, "depth": 3, "height": 90, "shape": "rect", "color": "#EFE6D6", "layer": "furniture", "decor": "macrame", "wallMounted": true },
+
+    { "id": "floor-lamp", "name": "Floor lamp", "category": "lighting", "width": 40, "depth": 40, "height": 165, "shape": "circle", "color": "#F1E3B9", "layer": "lighting", "decor": "lamp" },
+    { "id": "table-lamp", "name": "Table lamp", "category": "lighting", "width": 30, "depth": 30, "height": 55, "shape": "circle", "color": "#F1E3B9", "layer": "lighting", "decor": "lamp" },
+
+    { "id": "plant-small", "name": "Plant (small)", "category": "plants", "width": 20, "depth": 20, "height": 30, "shape": "circle", "color": "#6F8F5E", "layer": "plants", "decor": "plant", "plant": "generic" },
+    { "id": "plant-medium", "name": "Plant (medium)", "category": "plants", "width": 35, "depth": 35, "height": 70, "shape": "circle", "color": "#6F8F5E", "layer": "plants", "decor": "plant", "plant": "generic" },
+    { "id": "plant-tall", "name": "Plant (tall)", "category": "plants", "width": 50, "depth": 50, "height": 160, "shape": "circle", "color": "#5E7F55", "layer": "plants", "decor": "plant", "plant": "generic" },
+    { "id": "pothos", "name": "Pothos", "category": "plants", "width": 30, "depth": 30, "height": 40, "shape": "circle", "color": "#5E8C4A", "layer": "plants", "decor": "plant", "plant": "pothos" },
+    { "id": "spider-plant", "name": "Spider plant", "category": "plants", "width": 35, "depth": 35, "height": 35, "shape": "circle", "color": "#7BA05B", "layer": "plants", "decor": "plant", "plant": "spider" },
+    { "id": "tradescantia", "name": "Tradescantia pallida", "category": "plants", "width": 30, "depth": 30, "height": 30, "shape": "circle", "color": "#7A527F", "layer": "plants", "decor": "plant", "plant": "tradescantia" },
+    { "id": "callisia", "name": "Callisia fragrans", "category": "plants", "width": 35, "depth": 35, "height": 45, "shape": "circle", "color": "#7FA36B", "layer": "plants", "decor": "plant", "plant": "callisia" },
+    { "id": "plant-stand", "name": "Plant stand", "category": "plants", "width": 30, "depth": 30, "height": 60, "shape": "circle", "color": "#C49A6C", "layer": "furniture" },
+
+    { "id": "coat-rack", "name": "Coat rack", "category": "storage", "width": 50, "depth": 50, "height": 180, "shape": "circle", "color": "#8B6B4E", "layer": "furniture" },
+    { "id": "shoe-rack", "name": "Shoe rack", "category": "storage", "width": 80, "depth": 30, "height": 50, "shape": "rect", "color": "#C49A6C", "layer": "furniture", "decor": "shelves" },
+    { "id": "storage-bench", "name": "Storage bench", "category": "storage", "width": 100, "depth": 40, "height": 45, "shape": "rect", "color": "#C49A6C", "layer": "furniture" },
+    { "id": "hamper", "name": "Hamper", "category": "storage", "width": 45, "depth": 35, "height": 60, "shape": "rect", "color": "#E2D6C2", "layer": "furniture" },
+    { "id": "trash-can", "name": "Trash can", "category": "storage", "width": 30, "depth": 30, "height": 60, "shape": "circle", "color": "#9C948A", "layer": "furniture" }
+  ],
+  "fixed": [
+    { "type": "door", "name": "Door", "width": 81, "depth": 5, "height": 203, "mount": "center" },
+    { "type": "window", "name": "Window", "width": 91, "depth": 12, "height": 120, "mount": "center" },
+    { "type": "radiator", "name": "Radiator", "width": 100, "depth": 15, "height": 60, "mount": "face" },
+    { "type": "ac", "name": "AC unit", "width": 70, "depth": 40, "height": 40, "mount": "face" },
+    { "type": "fireplace", "name": "Fireplace and mantel", "width": 152, "depth": 46, "height": 110, "mount": "face" },
+    { "type": "counter", "name": "Kitchen counter", "width": 183, "depth": 64, "height": 91, "mount": "face" },
+    { "type": "fridge", "name": "Fridge", "width": 76, "depth": 76, "height": 178, "mount": "face" },
+    { "type": "stove", "name": "Stove", "width": 76, "depth": 66, "height": 91, "mount": "face" },
+    { "type": "closet", "name": "Closet", "width": 120, "depth": 61, "height": 240, "mount": "face" },
+    { "type": "washroom", "name": "Washroom", "width": 152, "depth": 213, "height": 240 },
+    { "type": "stairs", "name": "Staircase", "width": 90, "depth": 200, "height": 0, "stairStyle": "winding" },
+    { "type": "outlet", "name": "Outlet", "width": 12, "depth": 4, "height": 30, "mount": "face" },
+    { "type": "light", "name": "Light fixture", "width": 30, "depth": 30, "height": 0, "shape": "circle" }
+  ]
+}

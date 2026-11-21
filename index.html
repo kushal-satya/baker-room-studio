@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Room Studio: Baker Tower 126 and 226</title>
+  <meta name="description" content="A personal room planning studio for a two level apartment: draw rooms to scale, place furniture, compare layouts, and keep shopping and to-do lists.">
+  <meta name="theme-color" content="#F6F1E9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1F1A16" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Room Studio">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    /* Apply the saved theme before first paint to avoid a flash. */
+    (function () {
+      var t = 'auto';
+      try { t = localStorage.getItem('room-studio:theme') || 'auto'; } catch (e) {}
+      if (t === 'auto') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#canvas-wrap">Skip to the plan</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="var(--primary)"/><path d="M9 23V9h14v14H9zM9 16h6M18 9v7M18 20v3" fill="none" stroke="#F6F1E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="brand-name">Room Studio</span>
+    </div>
+
+    <div class="floor-tabs" role="tablist" aria-label="Floors" data-tour="floors">
+      <button role="tab" class="floor-tab" data-floor="126" aria-selected="true"><span class="long">126 (Lower)</span><span class="short">126</span></button>
+      <button role="tab" class="floor-tab" data-floor="226" aria-selected="false"><span class="long">226 (Upper)</span><span class="short">226</span></button>
+    </div>
+
+    <div class="scenario" data-tour="scenario">
+      <label class="sr-only" for="scenario-select">Layout</label>
+      <select id="scenario-select" aria-label="Layout scenario"></select>
+      <button class="icon-btn" id="btn-scenarios" data-icon="layers" aria-label="Manage layouts" title="Manage layouts"></button>
+    </div>
+
+    <div class="tools desktop-only" role="toolbar" aria-label="Tools">
+      <button class="tool" data-action="select" data-icon="select" title="Select and move (V)"><span>Select</span></button>
+      <button class="tool" data-action="draw" data-icon="draw" data-tour="draw" title="Draw walls (W)"><span>Draw</span></button>
+      <button class="tool" data-action="note" data-icon="note" title="Drop a sticky note (N)"><span>Note</span></button>
+      <button class="tool" data-action="clearance" data-icon="warning" title="Clearance checker"><span>Clearance</span></button>
+      <button class="tool" data-action="multi" data-icon="copy" title="Multi-select (or hold Shift)"><span>Multi</span></button>
+    </div>
+
+    <div class="spacer"></div>
+    <button id="sync-chip" class="sync-chip" hidden></button>
+    <div class="history">
+      <button class="icon-btn" data-action="undo" data-icon="undo" aria-label="Undo" title="Undo (Ctrl Z)"></button>
+      <button class="icon-btn" data-action="redo" data-icon="redo" aria-label="Redo" title="Redo (Ctrl Shift Z)"></button>
+    </div>
+    <button class="icon-btn desktop-only" data-action="toggle-left" data-icon="sidebarLeft" aria-label="Show or hide the library panel" title="Library panel"></button>
+    <button class="icon-btn desktop-only" data-action="toggle-right" data-icon="sidebarRight" aria-label="Show or hide the details panel" title="Details panel"></button>
+    <button class="icon-btn desktop-only" data-action="more" data-icon="more" data-tour="more" aria-label="More options" title="More"></button>
+  </header>
+
+  <main class="workspace">
+    <aside id="left" class="panel left" aria-label="Library, structure and view">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="panel-head">
+        <div class="tabs" role="tablist" aria-label="Left panel">
+          <button role="tab" class="tab" data-ltab="library" data-tour="library">Library</button>
+          <button role="tab" class="tab" data-ltab="structure">Structure</button>
+          <button role="tab" class="tab" data-ltab="view">View</button>
+        </div>
+        <button class="icon-btn sheet-close" data-icon="close" aria-label="Close panel"></button>
+      </div>
+      <div class="panel-body" id="left-body"></div>
+    </aside>
+
+    <section id="stage" class="stage" aria-label="Floor plan">
+      <div id="modebar" class="modebar" hidden></div>
+      <div id="canvas-wrap" class="canvas-wrap"></div>
+      <div id="empty-hint" class="empty-hint" hidden></div>
+      <div class="zoom-ctl" role="group" aria-label="Zoom">
+        <button class="icon-btn" data-action="zoom-in" data-icon="zoomIn" aria-label="Zoom in"></button>
+        <button class="icon-btn" data-action="zoom-out" data-icon="zoomOut" aria-label="Zoom out"></button>
+        <button class="icon-btn" data-action="fit" data-icon="fit" aria-label="Fit plan to screen"></button>
+      </div>
+      <div id="filter-badge" class="filter-badge" hidden></div>
+    </section>
+
+    <aside id="right" class="panel right" aria-label="Details and lists">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="panel-head">
+        <div class="tabs" role="tablist" aria-label="Right panel">
+          <button role="tab" class="tab" data-rtab="item">Item</button>
+          <button role="tab" class="tab" data-rtab="shop" data-tour="lists">Shopping</button>
+          <button role="tab" class="tab" data-rtab="remove">Remove</button>
+          <button role="tab" class="tab" data-rtab="todo">To-do</button>
+          <button role="tab" class="tab" data-rtab="notes">Notes</button>
+        </div>
+        <button class="icon-btn sheet-close" data-icon="close" aria-label="Close panel"></button>
+      </div>
+      <div class="panel-body" id="right-body"></div>
+    </aside>
+  </main>
+
+  <nav class="bottombar" aria-label="Main">
+    <button data-action="select" data-icon="select"><span>Select</span></button>
+    <button data-action="draw" data-icon="draw" data-tour="draw"><span>Draw</span></button>
+    <button data-action="add" data-icon="add" data-tour="library"><span>Add</span></button>
+    <button data-action="lists" data-icon="lists" data-tour="lists"><span>Lists</span></button>
+    <button data-action="more" data-icon="more" data-tour="more"><span>More</span></button>
+  </nav>
+
+  <div id="backdrop" class="backdrop" hidden></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <div id="modal-root"></div>
+  <div id="tour-root"></div>
+  <noscript><p class="noscript">Room Studio needs JavaScript to run.</p></noscript>
+</body>
+</html>
