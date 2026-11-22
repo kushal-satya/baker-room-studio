@@ -81,9 +81,31 @@ function newFloor(id, label) {
   return { id, label, walls: [], fixed: [], slopeZones: [], background: newBackground(), scenarios: [sc], activeScenario: sc.id };
 }
 
-/** Empty starter project: two floors, no walls, no furniture. */
+/**
+ * Measured room outline (from on-site measurements, Nov 2026): walls of
+ * 460, 426, 463 and 403 cm, drawn clockwise from the top-left corner.
+ * The last corner is solved so all four lengths close exactly, which makes
+ * the left wall lean about 2 cm. Used as the starting outline on both floors.
+ */
+const MEASURED_CORNERS = [[0, 0], [460, 0], [460, 426], [-2.43, 402.99]];
+
+function measuredWalls() {
+  return MEASURED_CORNERS.map(([x1, y1], i) => {
+    const [x2, y2] = MEASURED_CORNERS[(i + 1) % MEASURED_CORNERS.length];
+    return { id: uid('w'), x1, y1, x2, y2, thickness: 12 };
+  });
+}
+
+/** Seed the measured outline on floors that have no walls yet (once per project). */
+function seedDefaults(p) {
+  if (p.meta.defaultsSeeded) return;
+  for (const f of p.floors) if (!f.walls.length) f.walls = measuredWalls();
+  p.meta.defaultsSeeded = true;
+}
+
+/** Starter project: two floors with the measured outline, no furniture. */
 export function createEmptyProject() {
-  return {
+  const p = {
     schemaVersion: SCHEMA_VERSION,
     project: { name: 'Baker Tower 126 and 226', units: 'cm', budget: { min: 1000, max: 2000 } },
     settings: defaultSettings(),
@@ -92,6 +114,8 @@ export function createEmptyProject() {
     tomb: {},
     meta: { createdAt: Date.now(), updatedAt: Date.now() }
   };
+  seedDefaults(p);
+  return p;
 }
 
 /* ------------------------------------------------------------------ */
@@ -221,6 +245,7 @@ function normalize(p) {
   p.lists.comments = comments;
   p.tomb = p.tomb && typeof p.tomb === 'object' ? p.tomb : {};
   p.meta = Object.assign({ createdAt: Date.now(), updatedAt: Date.now() }, p.meta || {});
+  seedDefaults(p);
   p.schemaVersion = SCHEMA_VERSION;
   return p;
 }
