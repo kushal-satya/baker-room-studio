@@ -81,19 +81,32 @@ function newFloor(id, label) {
   return { id, label, walls: [], fixed: [], slopeZones: [], background: newBackground(), scenarios: [sc], activeScenario: sc.id };
 }
 
-/**
- * Measured room outline (from on-site measurements, Nov 2026): walls of
- * 460, 426, 463 and 403 cm, drawn clockwise from the top-left corner.
- * The last corner is solved so all four lengths close exactly, which makes
- * the left wall lean about 2 cm. Used as the starting outline on both floors.
+/*
+ * Measured room outlines (on-site measurements, Nov 2026), clockwise from the
+ * top-left corner, in cm.
+ * 226: walls of 460, 426, 463 and 403. The last corner is solved so all four
+ *      lengths close exactly (the left wall leans about 2 cm).
+ * 126: walls of 457 and 407, then the fireplace wall: 126, a 32 step out,
+ *      194 across the chimney breast, a 29 step back, and 135. The left wall
+ *      closes the shape (about 404).
  */
-const MEASURED_CORNERS = [[0, 0], [460, 0], [460, 426], [-2.43, 402.99]];
+const OUTLINES = {
+  '126': [[0, 0], [457, 0], [457, 407], [331, 407], [331, 375], [137, 375], [137, 404], [2, 404]],
+  '226': [[0, 0], [460, 0], [460, 426], [-2.43, 402.99]]
+};
+/** The first default outline, used to recognise untouched 126 walls when upgrading. */
+const OLD_DEFAULT = OUTLINES['226'];
 
-function measuredWalls() {
-  return MEASURED_CORNERS.map(([x1, y1], i) => {
-    const [x2, y2] = MEASURED_CORNERS[(i + 1) % MEASURED_CORNERS.length];
+function outlineWalls(corners) {
+  return corners.map(([x1, y1], i) => {
+    const [x2, y2] = corners[(i + 1) % corners.length];
     return { id: uid('w'), x1, y1, x2, y2, thickness: 12 };
   });
+}
+
+function wallsMatch(walls, corners) {
+  if (walls.length !== corners.length) return false;
+  return corners.every(([x, y], i) => Math.hypot(walls[i].x1 - x, walls[i].y1 - y) < 0.5);
 }
 
 /*
@@ -103,7 +116,7 @@ function measuredWalls() {
  */
 const S = { linen: '#D9CCB6', oak: '#C49A6C', walnut: '#8B6B4E', rug: '#E6D8C3', lamp: '#F1E3B9', sage: '#A7B59A', clay: '#C9A27E', bed: '#E8DFD0' };
 const STARTER = {
-  // 126 (Lower): entry and living room.
+  // 126 (Lower): entry and living room, seating facing the fireplace.
   '126': [
     ['Rug 8 x 5 ft', 244, 152, 1, 240, 175, 0, 'rect', S.rug, 'rugs', 'rug'],
     ['Sofa', 213, 91, 86, 240, 52, 0, 'rect', S.linen, 'furniture', 'sofa'],
@@ -111,15 +124,15 @@ const STARTER = {
     ['Armchair', 81, 86, 86, 110, 185, 270, 'rect', '#CDBFA6', 'furniture', 'armchair'],
     ['Side table', 46, 46, 56, 110, 32, 0, 'rect', S.oak, 'furniture'],
     ['Floor lamp', 40, 40, 165, 372, 35, 0, 'circle', S.lamp, 'lighting', 'lamp'],
-    ['TV stand', 152, 41, 56, 240, 388, 180, 'rect', S.walnut, 'furniture'],
-    ['TV (55 in)', 123, 8, 71, 240, 392, 180, 'rect', '#3A3530', 'furniture', 'tv'],
-    ['Floor cushion', 61, 61, 15, 378, 130, 0, 'rect', S.clay, 'furniture', 'cushion'],
-    ['Pouf', 46, 46, 41, 300, 290, 0, 'circle', '#CBB89A', 'furniture', 'cushion'],
-    ['Shoe rack', 80, 30, 50, 21, 270, 270, 'rect', S.oak, 'furniture', 'shelves'],
+    ['TV stand', 152, 41, 56, 430.5, 112, 90, 'rect', S.walnut, 'furniture'],
+    ['TV (55 in)', 123, 8, 71, 432, 112, 90, 'rect', '#3A3530', 'furniture', 'tv'],
+    ['Floor cushion', 61, 61, 15, 360, 132, 0, 'rect', S.clay, 'furniture', 'cushion'],
+    ['Pouf', 46, 46, 41, 120, 290, 0, 'circle', '#CBB89A', 'furniture', 'cushion'],
+    ['Shoe rack', 80, 30, 50, 21, 230, 270, 'rect', S.oak, 'furniture', 'shelves'],
     ['Coat rack', 50, 50, 180, 32, 105, 0, 'circle', S.walnut, 'furniture'],
-    ['Plant (tall)', 50, 50, 160, 425, 40, 0, 'circle', '#5E7F55', 'plants', 'plant', 'generic'],
-    ['Pothos', 30, 30, 40, 430, 110, 0, 'circle', '#5E8C4A', 'plants', 'plant', 'pothos'],
-    ['Spider plant', 35, 35, 35, 160, 32, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider']
+    ['Plant (tall)', 50, 50, 160, 32, 35, 0, 'circle', '#5E7F55', 'plants', 'plant', 'generic'],
+    ['Pothos', 30, 30, 40, 140, 355, 0, 'circle', '#5E8C4A', 'plants', 'plant', 'pothos'],
+    ['Spider plant', 35, 35, 35, 30, 165, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider']
   ],
   // 226 (Upper): bedroom and study.
   '226': [
@@ -149,37 +162,50 @@ function starterItems(floorId) {
   }));
 }
 
-/** Point on the bottom wall of the measured outline at a given x. */
-function bottomWallY(x) {
-  const [[ax, ay], [bx, by]] = [MEASURED_CORNERS[3], MEASURED_CORNERS[2]];
-  return ay + ((x - ax) / (bx - ax)) * (by - ay);
+/** 126 fixed elements: the hallway door 22 cm from the corner by the fireplace wall, and the fireplace on the chimney breast. */
+function fixed126() {
+  return [
+    { id: uid('fx'), type: 'door', name: 'Entry door', x: 1.7, y: 341.5, width: 81, depth: 5, height: 203, rotation: 270, shape: 'rect', locked: false, notes: '22 cm from the corner by the fireplace wall', hinge: 'left', swing: 'in', entry: true },
+    { id: uid('fx'), type: 'fireplace', name: 'Fireplace and mantel', x: 234, y: 346, width: 152, depth: 46, height: 110, rotation: 180, shape: 'rect', locked: false, notes: 'Centered on the 194 cm chimney breast' }
+  ];
 }
 
+const activeSc = f => f.scenarios.find(s => s.id === f.activeScenario) || f.scenarios[0];
+
 /**
- * Seed defaults once per project: the measured outline on floors without walls,
- * then a starter layout (staircase on both floors, entry door on 126, and
- * furniture) wherever a floor or layout is still empty.
+ * Seed defaults once per project: measured outlines on floors without walls,
+ * then a starter layout (staircase on both floors, entry door and fireplace on
+ * 126, furniture) wherever a floor or layout is still empty. Projects that got
+ * the first generic 126 outline are upgraded to the measured one if untouched.
  */
 function seedDefaults(p) {
   if (!p.meta.defaultsSeeded) {
-    for (const f of p.floors) if (!f.walls.length) f.walls = measuredWalls();
+    for (const f of p.floors) if (!f.walls.length) f.walls = outlineWalls(OUTLINES[f.id]);
     p.meta.defaultsSeeded = true;
   }
-  if (p.meta.layoutSeeded) return;
-  const linkId = uid('link');
-  const stairsLinked = p.floors.find(f => f.fixed.some(e => e.type === 'stairs'))?.fixed.find(e => e.type === 'stairs');
-  for (const f of p.floors) {
-    if (!stairsLinked) {
-      f.fixed.push({ id: uid('fx'), type: 'stairs', name: 'Staircase', x: 409, y: 320, width: 90, depth: 200, height: 0, rotation: 0, shape: 'rect', locked: false, notes: '', stairStyle: 'winding', stairTurn: 'right', linkId });
+  if (!p.meta.layoutSeeded) {
+    const linkId = uid('link');
+    const hasStairs = p.floors.some(f => f.fixed.some(e => e.type === 'stairs'));
+    for (const f of p.floors) {
+      if (!hasStairs) f.fixed.push({ id: uid('fx'), type: 'stairs', name: 'Staircase', x: 409, y: 320, width: 90, depth: 200, height: 0, rotation: 0, shape: 'rect', locked: false, notes: '', stairStyle: 'winding', stairTurn: 'right', linkId });
+      const sc = activeSc(f);
+      if (sc && !sc.items.length) sc.items = starterItems(f.id);
     }
-    if (f.id === '126' && !f.fixed.some(e => e.type === 'door')) {
-      const wallAngle = (Math.atan2(MEASURED_CORNERS[3][1] - MEASURED_CORNERS[2][1], MEASURED_CORNERS[3][0] - MEASURED_CORNERS[2][0]) * 180) / Math.PI;
-      f.fixed.push({ id: uid('fx'), type: 'door', name: 'Entry door', x: 80, y: Math.round(bottomWallY(80) * 10) / 10, width: 81, depth: 5, height: 203, rotation: Math.round(((wallAngle % 360) + 360) % 360 * 10) / 10, shape: 'rect', locked: false, notes: '', hinge: 'right', swing: 'in', entry: true });
-    }
-    const sc = f.scenarios.find(s => s.id === f.activeScenario) || f.scenarios[0];
-    if (sc && !sc.items.length) sc.items = starterItems(f.id);
+    p.meta.layoutSeeded = true;
   }
-  p.meta.layoutSeeded = true;
+  if (!p.meta.room126v2) {
+    const f = p.floors.find(x => x.id === '126');
+    if (f) {
+      const untouched = !f.walls.length || wallsMatch(f.walls, OLD_DEFAULT) || wallsMatch(f.walls, OUTLINES['126']);
+      if (untouched) {
+        f.walls = outlineWalls(OUTLINES['126']);
+        f.fixed = f.fixed.filter(e => !(e.type === 'door' && e.name === 'Entry door') && e.type !== 'fireplace').concat(fixed126());
+        const sc = activeSc(f);
+        if (sc && sc.items.every(it => it.type === 'starter')) sc.items = starterItems('126');
+      }
+    }
+    p.meta.room126v2 = true;
+  }
 }
 
 /** Starter project: two floors with the measured outline, no furniture. */
