@@ -82,130 +82,144 @@ function newFloor(id, label) {
 }
 
 /*
- * Default plan for 126 and 226, drawn square to the grid from the original
- * floor plans and on-site measurements (Nov 2026). All walls are straight.
+ * Baseline plan for 126 and 226: the rooms as they are today, from the
+ * original floor plans, on-site measurements and photos (Nov 2026).
+ * All walls are straight. Coordinates are cm; x grows east, y grows south;
+ * the main room's north wall is y = 0.
  *
- * Main room (both floors): 407 cm wide (east-west) by 457 cm (126) or 461 cm
- * (226) long. The chimney breast is on the west wall: 135 cm of wall from the
- * north corner, then the breast (194 cm wide, 31 cm deep), then the rest.
- * Windows on the south wall (and the east wall on 126).
+ * Main room (both floors): 407 cm wide by 457 cm (126) or 461 cm (226).
+ * Chimney breast on the west wall: 135 cm of wall from the north corner, then
+ * the breast (194 cm wide, 31 cm deep), then the rest of the wall.
  *
- * North of the main room (y < 0), 202 cm deep:
- *  126: entry hall (west) with the 85 cm brick arch 67 cm from its north
- *       corner leading to the alcove and building door, the kitchen (202 cm
- *       wall to wall, 134 cm of floor in front of the counters) next to the
- *       staircase (east).
- *  226: landing (west) and the staircase (east).
- * Coordinates are cm; x grows east, y grows south; north wall of the main room is y = 0.
+ * 126 north wall, west to east: door to the entry hall, the kitchen alcove
+ * (fridge, small counter, stove, microwave above), door to the staircase.
+ * The hall leads north through the 85 cm brick arch to the alcove and the
+ * building door. 226 north wall: closet door and the door to the stairs.
+ * 226 has sloped ceilings along both long walls: 108 cm knee walls rising
+ * to the flat ceiling.
  */
 const W = 407, NORTH = 202, BREAST = { top: 135, width: 194, depth: 31 };
-const KITCHEN_X = [115, 317];
+const ALCOVE = { x1: 115, x2: 305, depth: 70 };
 
-function mainRoomCorners(len) {
+function seg(x1, y1, x2, y2) { return { id: uid('w'), x1, y1, x2, y2, thickness: 12 }; }
+
+function mainRoom(len, northBreaks) {
   const b1 = BREAST.top, b2 = BREAST.top + BREAST.width;
-  return [[0, 0], [W, 0], [W, len], [0, len], [0, b2], [BREAST.depth, b2], [BREAST.depth, b1], [0, b1]];
-}
-
-function loop(corners) {
-  return corners.map(([x1, y1], i) => {
-    const [x2, y2] = corners[(i + 1) % corners.length];
-    return [[x1, y1], [x2, y2]];
-  });
+  const out = [
+    seg(W, 0, W, len), seg(W, len, 0, len),
+    seg(0, len, 0, b2), seg(0, b2, BREAST.depth, b2), seg(BREAST.depth, b2, BREAST.depth, b1), seg(BREAST.depth, b1, 0, b1), seg(0, b1, 0, 0)
+  ];
+  if (!northBreaks) out.push(seg(0, 0, W, 0));
+  return out;
 }
 
 function planWalls(floorId) {
-  const len = floorId === '126' ? 457 : 461;
-  const segs = loop(mainRoomCorners(len));
-  segs.push([[0, -NORTH], [W, -NORTH]], [[W, -NORTH], [W, 0]]);
   if (floorId === '126') {
-    segs.push(
-      // Hall west wall around the 85 cm arch (67 cm of brick north of it).
-      [[0, -NORTH], [0, -135]], [[0, -50], [0, 0]],
-      // Alcove behind the arch: 145 cm across, about 147 cm deep.
-      [[0, -160], [-147, -160]], [[-147, -160], [-147, -15]], [[-147, -15], [0, -15]],
-      // Hall and kitchen, with the kitchen door from the hall.
-      [[KITCHEN_X[0], -NORTH], [KITCHEN_X[0], -139]], [[KITCHEN_X[0], -63], [KITCHEN_X[0], 0]],
-      // Kitchen and staircase, open at the foot of the stairs.
-      [[KITCHEN_X[1], -NORTH], [KITCHEN_X[1], -95]]
-    );
-  } else {
-    segs.push([[0, -NORTH], [0, 0]], [[313, -NORTH], [313, -95]]);
+    const a = ALCOVE;
+    return [
+      ...mainRoom(457, true),
+      // North wall with the kitchen alcove.
+      seg(0, 0, a.x1, 0), seg(a.x1, 0, a.x1, -a.depth), seg(a.x1, -a.depth, a.x2, -a.depth), seg(a.x2, -a.depth, a.x2, 0), seg(a.x2, 0, W, 0),
+      // Entry hall (west) and staircase (east) north of the room.
+      seg(0, 0, 0, -NORTH), seg(0, -NORTH, 15, -NORTH), seg(100, -NORTH, W, -NORTH), seg(W, -NORTH, W, 0),
+      seg(a.x1, -a.depth, a.x1, -NORTH), seg(a.x2, -a.depth, a.x2, -NORTH),
+      // Brick alcove behind the 85 cm arch.
+      seg(-15, -NORTH, -15, -NORTH - 147), seg(-15, -NORTH - 147, 130, -NORTH - 147), seg(130, -NORTH - 147, 130, -NORTH),
+      seg(-15, -NORTH, 15, -NORTH), seg(100, -NORTH, 130, -NORTH)
+    ];
   }
-  return segs.map(([[x1, y1], [x2, y2]]) => ({ id: uid('w'), x1, y1, x2, y2, thickness: 12 }));
+  return [
+    ...mainRoom(461, false),
+    seg(0, 0, 0, -NORTH), seg(0, -NORTH, W, -NORTH), seg(W, -NORTH, W, 0),
+    // Closet (west) and stair landing (east).
+    seg(150, 0, 150, -NORTH)
+  ];
 }
 
 function fx(type, name, x, y, width, depth, rotation, extra = {}) {
-  return { id: uid('fx'), type, name, x, y, width, depth, height: 0, rotation, shape: type === 'light' ? 'circle' : 'rect', locked: false, notes: '', ...extra };
+  return { id: uid('fx'), type, name, x, y, width, depth, height: 0, rotation, shape: 'rect', locked: false, notes: '', ...extra };
 }
 
 function planFixed(floorId, linkId) {
   const len = floorId === '126' ? 457 : 461;
   const out = [
-    fx('stairs', 'Staircase', 362, -101, 90, 190, 0, { stairStyle: 'winding', stairTurn: 'right', linkId }),
-    fx('fireplace', 'Fireplace and mantel', BREAST.depth + 6 + 23, BREAST.top + BREAST.width / 2, 152, 46, 270, { height: 110 }),
-    fx('door', 'Door to hall', 62.5, 0, 81, 5, 0, { hinge: 'left', swing: 'out', height: 203, notes: '22 cm from the corner by the fireplace wall' }),
-    fx('window', 'Window', W / 2, len, floorId === '126' ? 150 : 220, 12, 180, { height: 120 })
+    fx('stairs', 'Staircase', 356, -101, 90, 190, 0, { stairStyle: 'winding', stairTurn: 'left', linkId }),
+    fx('fireplace', 'Fireplace and mantel', BREAST.depth + 6 + 23, BREAST.top + BREAST.width / 2, 152, 46, 270, { height: 110 })
   ];
   if (floorId === '126') {
     out.push(
-      fx('window', 'Window', W, 232, 150, 12, 90, { height: 120 }),
-      fx('door', 'Door to kitchen', 268, 0, 76, 5, 0, { hinge: 'right', swing: 'out', height: 203 }),
-      fx('door', 'Kitchen door from hall', KITCHEN_X[0], -101, 76, 5, 90, { hinge: 'left', swing: 'out', height: 203 }),
-      fx('door', 'Door with mirror (bath)', 57, -NORTH, 81, 5, 0, { hinge: 'right', swing: 'in', height: 203 }),
-      fx('door', 'Building door', -90, -15, 81, 5, 180, { hinge: 'left', swing: 'in', height: 203, entry: true }),
-      fx('fridge', 'Fridge', 159, -158, 76, 76, 0, { height: 178 }),
-      fx('counter', 'Counter', 216, -162, 38, 68, 0, { height: 91 }),
-      fx('stove', 'Stove (microwave above)', 273, -163, 76, 66, 0, { height: 91 })
+      fx('door', 'Door to entry hall', 62.5, 0, 81, 5, 0, { hinge: 'left', swing: 'out', height: 203 }),
+      fx('door', 'Door to stairs', 350, 0, 76, 5, 0, { hinge: 'right', swing: 'out', height: 203 }),
+      fx('door', 'Building door', -15, -NORTH - 80, 81, 5, 90, { hinge: 'left', swing: 'in', height: 203, entry: true }),
+      fx('fridge', 'Fridge', 150, -40, 60, 60, 0, { height: 150 }),
+      fx('counter', 'Counter', 202, -38, 44, 64, 0, { height: 91 }),
+      fx('stove', 'Stove (microwave above)', 262, -39, 76, 62, 0, { height: 91 }),
+      fx('window', 'Window (AC unit)', W, 300, 150, 12, 90, { height: 120 }),
+      fx('ac', 'AC unit (in window)', W - 14, 330, 60, 18, 90, { height: 40 }),
+      fx('window', 'Window', 260, len, 150, 12, 180, { height: 120 }),
+      fx('radiator', 'Radiator', 260, len - 13, 140, 15, 180, { height: 60 })
     );
   } else {
-    out.push(fx('door', 'Door to stairs', 358, 0, 76, 5, 0, { hinge: 'right', swing: 'out', height: 203 }));
+    out.push(
+      fx('door', 'Closet door', 85, 0, 76, 5, 0, { hinge: 'left', swing: 'in', height: 203 }),
+      fx('door', 'Door to stairs', 195, 0, 81, 5, 0, { hinge: 'right', swing: 'in', height: 203 }),
+      fx('closet', 'Closet', 75, -101, 138, 178, 0, { height: 200 }),
+      fx('window', 'Window', 215, len, 230, 12, 180, { height: 120 }),
+      fx('radiator', 'Radiator', 215, len - 13, 230, 15, 180, { height: 60 })
+    );
   }
   return out;
 }
 
+/** 226 sloped ceilings: knee walls 108 cm high on the east and west walls. */
+function planSlopes(floorId) {
+  if (floorId !== '226') return [];
+  const len = 461;
+  const z = (x, lowSide) => ({ id: uid('sz'), x, y: len / 2, width: 145, depth: len, rotation: 0, low: 108, high: 240, lowSide, locked: false });
+  return [z(72.5, 'left'), z(W - 72.5, 'right')];
+}
+
 /*
- * Starter furniture: a draft to move around.
+ * Baseline furniture, placed as in the photos.
  * Each row: [name, width, depth, height, x, y, rotation, shape, color, layer, decor, plant].
  * Rotation 0 puts an item's back to the north wall; 90 east, 180 south, 270 west.
  */
-const S = { linen: '#D9CCB6', oak: '#C49A6C', walnut: '#8B6B4E', rug: '#E6D8C3', lamp: '#F1E3B9', sage: '#A7B59A', clay: '#C9A27E', bed: '#E8DFD0' };
+const S = { linen: '#D9CCB6', oak: '#C49A6C', walnut: '#6E4B33', rug: '#E6D8C3', sage: '#A7B59A', bed: '#E8DFD0', cream: '#EFE6D6' };
 const STARTER = {
-  // 126 (Lower): living room facing the fireplace, entry storage in the alcove.
   '126': [
-    ['Rug 8 x 5 ft', 244, 152, 1, 225, 232, 90, 'rect', S.rug, 'rugs', 'rug'],
-    ['Sofa', 213, 91, 86, 355.5, 232, 90, 'rect', S.linen, 'furniture', 'sofa'],
-    ['Coffee table', 107, 61, 46, 230, 232, 90, 'rect', S.oak, 'furniture'],
-    ['Armchair', 81, 86, 86, 130, 408, 180, 'rect', '#CDBFA6', 'furniture', 'armchair'],
-    ['Side table', 46, 46, 56, 365, 370, 0, 'rect', S.oak, 'furniture'],
-    ['Floor lamp', 40, 40, 165, 380, 40, 0, 'circle', S.lamp, 'lighting', 'lamp'],
-    ['TV (55 in), above mantel', 123, 8, 71, 39, 232, 270, 'rect', '#3A3530', 'furniture', 'tv'],
-    ['Bookshelf', 80, 30, 180, 250, 436, 180, 'rect', S.oak, 'furniture', 'shelves'],
-    ['Floor cushion', 61, 61, 15, 130, 60, 0, 'rect', S.clay, 'furniture', 'cushion'],
-    ['Pouf', 46, 46, 41, 130, 330, 0, 'circle', '#CBB89A', 'furniture', 'cushion'],
-    ['Plant (tall)', 50, 50, 160, 35, 425, 0, 'circle', '#5E7F55', 'plants', 'plant', 'generic'],
-    ['Pothos', 30, 30, 40, 380, 430, 0, 'circle', '#5E8C4A', 'plants', 'plant', 'pothos'],
-    ['Spider plant', 35, 35, 35, 330, 30, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider'],
-    ['Coat rack', 50, 50, 180, -120, -130, 0, 'circle', S.walnut, 'furniture'],
-    ['Shoe rack', 80, 30, 50, -126, -65, 270, 'rect', S.oak, 'furniture', 'shelves'],
-    ['Trash can', 30, 30, 60, 138, -25, 0, 'circle', '#9C948A', 'furniture']
+    ['Kitchen vinyl floor', 210, 134, 1, 210, 67, 0, 'rect', '#E3C98F', 'rugs'],
+    ['Kitchen island (drop-leaf table)', 90, 120, 91, 210, 190, 0, 'rect', S.walnut, 'furniture'],
+    ['Bar stool', 41, 41, 76, 140, 170, 0, 'circle', '#BFB3A0', 'furniture'],
+    ['Bar stool', 41, 41, 76, 210, 285, 0, 'circle', '#BFB3A0', 'furniture'],
+    ['Drop-leaf table', 50, 110, 76, 376, 110, 0, 'rect', S.walnut, 'furniture'],
+    ['Dining chair', 46, 50, 86, 330, 110, 90, 'rect', '#B08A62', 'furniture', 'chair'],
+    ['Striped rug', 152, 244, 1, 255, 330, 0, 'rect', '#E9C46A', 'rugs', 'rug'],
+    ['Sofa', 200, 90, 86, 356, 300, 90, 'rect', '#DDE5DA', 'furniture', 'sofa'],
+    ['Coffee table', 60, 60, 46, 270, 330, 0, 'rect', '#F4F1EA', 'furniture'],
+    ['Side table', 46, 46, 56, 375, 420, 0, 'rect', S.walnut, 'furniture'],
+    ['Armchair', 85, 85, 86, 300, 405, 200, 'rect', '#E7EDF5', 'furniture', 'armchair'],
+    ['Plant shelf', 60, 35, 150, 205, 434, 180, 'rect', '#B07A3A', 'furniture', 'shelves'],
+    ['Shelving and storage', 45, 110, 90, 60, 400, 270, 'rect', '#3F362F', 'furniture', 'shelves'],
+    ['Pothos', 30, 30, 40, 205, 434, 0, 'circle', '#5E8C4A', 'plants', 'plant', 'pothos'],
+    ['Plant (medium)', 35, 35, 70, 250, 430, 0, 'circle', '#6F8F5E', 'plants', 'plant', 'generic'],
+    ['Spider plant', 35, 35, 35, 390, 380, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider'],
+    ['Plant (medium)', 35, 35, 70, 60, 335, 0, 'circle', '#6F8F5E', 'plants', 'plant', 'generic'],
+    ['Trash can', 30, 30, 60, 40, -170, 0, 'rect', '#9C948A', 'furniture'],
+    ['Coat rack', 50, 50, 180, 100, -310, 0, 'circle', S.walnut, 'furniture'],
+    ['Shoe rack', 80, 30, 50, 30, -270, 270, 'rect', S.oak, 'furniture', 'shelves']
   ],
-  // 226 (Upper): bedroom and study.
   '226': [
-    ['Rug 8 x 5 ft', 244, 152, 1, 215, 230, 90, 'rect', S.rug, 'rugs', 'rug'],
-    ['Bed (queen)', 152, 203, 55, 299.5, 230, 90, 'rect', S.bed, 'furniture', 'bed'],
-    ['Nightstand', 46, 41, 61, 380.5, 129, 90, 'rect', S.oak, 'furniture'],
-    ['Nightstand', 46, 41, 61, 380.5, 331, 90, 'rect', S.oak, 'furniture'],
-    ['Macrame wall hanging', 60, 3, 90, 399.5, 230, 90, 'rect', '#EFE6D6', 'furniture', 'macrame'],
-    ['Desk', 120, 60, 75, 200, 425, 180, 'rect', S.oak, 'furniture'],
-    ['Office chair', 66, 66, 110, 200, 375, 180, 'circle', '#9A958B', 'furniture', 'chair'],
-    ['Dresser', 152, 51, 81, 212, 31.5, 0, 'rect', S.walnut, 'furniture', 'drawers'],
-    ['Bookshelf', 80, 30, 180, 21, 395, 270, 'rect', S.oak, 'furniture', 'shelves'],
-    ['Floor cushion', 61, 61, 15, 90, 380, 0, 'rect', S.sage, 'furniture', 'cushion'],
-    ['Floor lamp', 40, 40, 165, 110, 320, 0, 'circle', S.lamp, 'lighting', 'lamp'],
-    ['Tradescantia pallida', 30, 30, 30, 380.5, 129, 0, 'circle', '#7A527F', 'plants', 'plant', 'tradescantia'],
-    ['Callisia fragrans', 35, 35, 45, 380, 430, 0, 'circle', '#7FA36B', 'plants', 'plant', 'callisia'],
-    ['Spider plant', 35, 35, 35, 40, 40, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider'],
-    ['Plant (tall)', 50, 50, 160, 35, 100, 0, 'circle', '#5E7F55', 'plants', 'plant', 'generic']
+    ['Bed (full)', 137, 191, 55, 305.5, 220, 90, 'rect', S.bed, 'furniture', 'bed'],
+    ['Nightstand', 46, 41, 61, 380.5, 102, 90, 'rect', S.oak, 'furniture'],
+    ['Nightstand desk', 90, 45, 76, 330, 28.5, 0, 'rect', S.oak, 'furniture', 'drawers'],
+    ['Floor mirror', 60, 4, 160, 260, 10, 0, 'rect', '#D5DEDF', 'furniture', 'mirror'],
+    ['Desk', 100, 50, 75, 345, 430, 180, 'rect', S.oak, 'furniture'],
+    ['Office chair', 55, 55, 100, 345, 385, 180, 'circle', '#9A958B', 'furniture', 'chair'],
+    ['Round rug', 120, 120, 1, 215, 360, 0, 'circle', '#9DB7D5', 'rugs', 'rug'],
+    ['Dresser (low)', 110, 45, 75, 28.5, 72, 270, 'rect', S.oak, 'furniture', 'drawers'],
+    ['Towel rack', 60, 30, 90, 110, 260, 270, 'rect', '#3F362F', 'furniture'],
+    ['Elephant wall hanging', 80, 3, 60, 8, 385, 270, 'rect', '#8E4A33', 'furniture', 'macrame'],
+    ['Plant (medium)', 35, 35, 70, 30, 440, 0, 'circle', '#6F8F5E', 'plants', 'plant', 'generic']
   ]
 };
 
@@ -220,21 +234,24 @@ function starterItems(floorId) {
 const activeSc = f => f.scenarios.find(s => s.id === f.activeScenario) || f.scenarios[0];
 
 /**
- * Apply the default plan once per project (planV4). Earlier drafts of the
- * default plan are replaced: walls and fixed elements on both floors, and
- * starter furniture. Furniture you added yourself is kept.
+ * Apply the baseline plan once per project (planV5). Earlier default drafts
+ * are replaced: walls, fixed elements, slope zones and starter furniture on
+ * both floors. Furniture you added yourself is kept.
  */
 function seedDefaults(p) {
-  if (p.meta.planV4) return;
+  if (p.meta.planV5) return;
   const linkId = uid('link');
   for (const f of p.floors) {
     f.walls = planWalls(f.id);
     f.fixed = planFixed(f.id, linkId);
-    f.slopeZones = f.slopeZones || [];
+    f.slopeZones = planSlopes(f.id);
     const sc = activeSc(f);
-    if (sc) sc.items = [...sc.items.filter(it => it.type !== 'starter'), ...starterItems(f.id)];
+    if (sc) {
+      sc.name = sc.name === 'Current' ? 'Current (as is)' : sc.name;
+      sc.items = [...sc.items.filter(it => it.type !== 'starter'), ...starterItems(f.id)];
+    }
   }
-  p.meta.planV4 = true;
+  p.meta.planV5 = true;
 }
 
 /** Starter project: both floors with the default plan and starter furniture. */
