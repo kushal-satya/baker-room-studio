@@ -313,6 +313,170 @@ function fixKitchenAndAlcove(p) {
   p.meta.planV7 = true;
 }
 
+/*
+ * planV8: layout drawn to match the hand sketch (Nov 2026), in the sketch's
+ * orientation: fireplace wall at the top.
+ * Main room 457 x 407 cm. Fireplace wall (top), from the left: 135 cm, chimney
+ * breast 194 cm wide and 31 cm deep, then 128 cm. Windows on the left and
+ * bottom walls (AC unit in the left window).
+ * Right of the main room (x 457 to 757), top to bottom: entry hall (door to
+ * the main room, washroom door on its right, brick arch at the top leading to
+ * the alcove with the building door), the open kitchen (no doors, no wall to
+ * the room; counters on its back wall; 202 cm deep: 64 cm counters plus 134 cm
+ * of vinyl floor) with the staircase behind it, and the closet at the bottom.
+ * 226 shares the footprint: fireplace on the top wall, closet and stair
+ * doors on the right wall, window on the left wall, sloped ceilings along the
+ * top and bottom walls.
+ */
+const V8 = { W: 457, H: 407, COL: 757, HALL: 120, KIT: 310 };
+
+function v8Walls(floorId) {
+  const { W: w, H: h, COL: c, HALL: hy, KIT: ky } = V8;
+  const b1 = 135, b2 = 329, bd = 31;
+  const room = [
+    seg(0, 0, b1, 0), seg(b1, 0, b1, bd), seg(b1, bd, b2, bd), seg(b2, bd, b2, 0), seg(b2, 0, w, 0),
+    seg(0, 0, 0, h), seg(0, h, w, h)
+  ];
+  if (floorId === '126') {
+    return [
+      ...room,
+      seg(w, 0, w, hy), seg(w, ky, w, h),
+      // Hall top wall with the 85 cm arch, and the alcove above it.
+      seg(w, 0, 545, 0), seg(630, 0, c, 0),
+      seg(515, 0, 515, -147), seg(515, -147, 660, -147), seg(660, -147, 660, 0),
+      // Column outer wall and bottom.
+      seg(c, 0, c, h), seg(w, h, c, h),
+      // Hall to kitchen, kitchen back wall (stairs behind), closet top.
+      seg(w, hy, 659, hy), seg(659, hy, 659, ky), seg(w, ky, c, ky)
+    ];
+  }
+  return [
+    ...room, seg(w, 0, w, h),
+    // Closet, landing and staircase to the right of the doors wall.
+    seg(w, 110, c, 110), seg(600, 110, 600, 200), seg(w, 200, 600, 200), seg(c, 110, c, 330), seg(c, 330, w, 330)
+  ];
+}
+
+function v8Fixed(floorId, linkId) {
+  const { W: w, H: h } = V8;
+  const out = [
+    fx('stairs', 'Staircase', 708, 215, 90, 190, 0, { stairStyle: 'winding', stairTurn: 'left', linkId }),
+    fx('fireplace', 'Fireplace and mantel', 232, 60, 152, 46, 0, { height: 110 })
+  ];
+  if (floorId === '126') {
+    out.push(
+      fx('door', 'Door to entry hall', w, 60, 81, 5, 90, { hinge: 'left', swing: 'out', height: 203 }),
+      fx('door', 'Closet door', w, 358, 76, 5, 90, { hinge: 'left', swing: 'out', height: 203 }),
+      fx('door', 'Washroom door', V8.COL, 60, 76, 5, 90, { hinge: 'right', swing: 'in', height: 203 }),
+      fx('door', 'Building door', 515, -80, 81, 5, 90, { hinge: 'left', swing: 'out', height: 203, entry: true }),
+      fx('fridge', 'Fridge', 623, 155, 60, 60, 90, { height: 150 }),
+      fx('counter', 'Counter', 621, 207, 44, 64, 90, { height: 91 }),
+      fx('stove', 'Stove (microwave above)', 622, 267, 76, 62, 90, { height: 91 }),
+      fx('window', 'Window (AC unit)', 0, 210, 160, 12, 270, { height: 120 }),
+      fx('ac', 'AC unit (in window)', 14, 250, 60, 18, 270, { height: 40 }),
+      fx('window', 'Window', 246, h, 160, 12, 180, { height: 120 }),
+      fx('radiator', 'Radiator', 246, h - 13, 150, 15, 180, { height: 60 })
+    );
+  } else {
+    out.push(
+      fx('door', 'Closet door', w, 155, 76, 5, 90, { hinge: 'left', swing: 'in', height: 203 }),
+      fx('door', 'Door to stairs', w, 255, 81, 5, 90, { hinge: 'right', swing: 'in', height: 203 }),
+      fx('window', 'Window', 0, 200, 230, 12, 270, { height: 120 }),
+      fx('radiator', 'Radiator', 13, 200, 230, 15, 270, { height: 60 }),
+      fx('window', 'Stair window', V8.COL, 160, 90, 12, 90, { height: 120 })
+    );
+  }
+  return out;
+}
+
+function v8Slopes(floorId) {
+  if (floorId !== '226') return [];
+  const z = (y, lowSide) => ({ id: uid('sz'), x: V8.W / 2, y, width: V8.W, depth: 145, rotation: 0, low: 108, high: 240, lowSide, locked: false });
+  return [z(72.5, 'top'), z(V8.H - 72.5, 'bottom')];
+}
+
+/*
+ * Placements: [name, x, y, rotation]. Items with the same name are placed in
+ * order. Only default (starter) items are moved; anything you added stays put.
+ */
+const V8_CURRENT = {
+  '126': [
+    ['Kitchen vinyl floor', 523, 215, 0, { width: 132, depth: 190 }],
+    ['Kitchen island (drop-leaf table)', 382, 200, 0],
+    ['Bar stool', 320, 175, 0], ['Bar stool', 320, 235, 0],
+    ['Drop-leaf table', 400, 345, 90], ['Dining chair', 390, 295, 0],
+    ['Striped rug', 190, 230, 90], ['Sofa', 51, 230, 270], ['Coffee table', 190, 230, 0],
+    ['Side table', 35, 375, 0], ['Armchair', 115, 355, 180], ['Plant shelf', 250, 386, 180],
+    ['Shelving and storage', 70, 28, 0], ['Pothos', 250, 386, 0], ['Plant (medium)', 300, 385, 0],
+    ['Spider plant', 30, 30, 0], ['Plant (medium)', 160, 380, 0],
+    ['Trash can', 500, 22, 0], ['Coat rack', 630, -110, 0], ['Shoe rack', 540, -60, 270]
+  ],
+  '226': [
+    ['Bed (full)', 300, 305.5, 180], ['Nightstand', 205, 380.5, 180], ['Nightstand desk', 405, 384.5, 180],
+    ['Floor mirror', 449, 330, 90], ['Desk', 31, 340, 270], ['Office chair', 80, 340, 270],
+    ['Round rug', 150, 200, 0], ['Dresser (low)', 395, 28.5, 0], ['Towel rack', 232, 110, 0],
+    ['Elephant wall hanging', 70, 8, 0], ['Plant (medium)', 30, 40, 0]
+  ]
+};
+
+/* Your sketch as a layout: [name, x, y, rotation, changes]. */
+const V8_SKETCH_126 = [
+  ['TV stand', 152, 41, 56, 232, 105, 0, { status: 'buy', priority: 'Should', color: '#6E4B33', notes: 'Dashed in your sketch in front of the fireplace. Confirm whether you need to buy one.' }],
+  ['Centre table (B)', 120, 60, 46, 218, 190, 0, { status: 'buy', priority: 'Must', color: '#C49A6C', notes: 'B in your sketch. On your Things to buy list.' }],
+  ['Accent chair (2nd)', 81, 86, 86, 56, 255, 270, { status: 'buy', priority: 'Nice', color: '#E7EDF5', decor: 'armchair', notes: 'Your sketch shows two chairs by the left window. Delete this if you meant something else.' }]
+];
+const V8_SKETCH_MOVES = [
+  ['Sofa', 195, 355.5, 180, { status: 'move' }],
+  ['Armchair', 56, 140, 270, { status: 'move' }],
+  ['Side table', 45, 360, 0, { status: 'move' }],
+  ['Striped rug', 218, 200, 90, {}],
+  ['Coffee table', 340, 330, 0, { status: 'move', notes: 'Where should this go once the centre table (B) arrives?' }],
+  ['Drop-leaf table', 400, 345, 90, { status: 'remove', notes: 'Dining table: on your Things to get rid of list.' }],
+  ['Dining chair', 80, 95, 0, { status: 'move', notes: 'Reuse at A (sketch).' }],
+  ['Dining chair', 395, 60, 0, { status: 'move', notes: "Reuse at A' (sketch)." }]
+];
+
+function placeByName(items, placements) {
+  const used = new Set();
+  for (const [name, x, y, rotation, extra] of placements) {
+    const it = items.find(i => i.type === 'starter' && i.name === name && !used.has(i));
+    if (!it) continue;
+    used.add(it);
+    Object.assign(it, { x, y, rotation }, extra || {});
+  }
+}
+
+function planV8(p) {
+  if (p.meta.planV8) return;
+  const linkId = uid('link');
+  for (const f of p.floors) {
+    f.walls = v8Walls(f.id);
+    f.fixed = v8Fixed(f.id, linkId);
+    f.slopeZones = v8Slopes(f.id);
+    const cur = f.scenarios.find(s => s.name === 'Current (as is)') || activeSc(f);
+    if (!cur) continue;
+    if (f.id === '126' && cur.items.filter(i => i.type === 'starter' && i.name === 'Dining chair').length === 1) {
+      const chair = cur.items.find(i => i.type === 'starter' && i.name === 'Dining chair');
+      cur.items.push({ ...clone(chair), id: uid('it'), x: 430, y: 295 });
+    }
+    placeByName(cur.items, V8_CURRENT[f.id]);
+    if (f.id === '126' && !f.scenarios.some(s => s.name === 'Plan (from sketch)')) {
+      const plan = { id: uid('sc'), name: 'Plan (from sketch)', notes: [], items: cur.items.map(it => ({ ...clone(it), id: uid('it') })) };
+      placeByName(plan.items, V8_SKETCH_MOVES);
+      for (const [name, width, depth, height, x, y, rotation, extra] of V8_SKETCH_126) {
+        plan.items.push({
+          id: uid('it'), type: 'starter', name, x, y, width, depth, height, rotation, shape: 'rect', color: '#C49A6C',
+          status: 'keep', room: '126', price: null, store: '', link: '', priority: 'Should', notes: '',
+          locked: false, layer: 'furniture', disposition: 'Undecided', ...extra
+        });
+      }
+      f.scenarios.push(plan);
+      f.activeScenario = plan.id;
+    }
+  }
+  p.meta.planV8 = true;
+}
+
 /** Starter project: both floors with the default plan and starter furniture. */
 export function createEmptyProject() {
   const p = {
@@ -327,6 +491,7 @@ export function createEmptyProject() {
   seedDefaults(p);
   fixOpenKitchen(p);
   fixKitchenAndAlcove(p);
+  planV8(p);
   return p;
 }
 
@@ -460,6 +625,7 @@ function normalize(p) {
   seedDefaults(p);
   fixOpenKitchen(p);
   fixKitchenAndAlcove(p);
+  planV8(p);
   p.schemaVersion = SCHEMA_VERSION;
   return p;
 }
