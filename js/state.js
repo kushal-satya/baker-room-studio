@@ -96,11 +96,90 @@ function measuredWalls() {
   });
 }
 
-/** Seed the measured outline on floors that have no walls yet (once per project). */
+/*
+ * Starter layout: a draft to drag around, not a measured plan.
+ * Each row: [name, width, depth, height, x, y, rotation, shape, color, layer, decor, plant].
+ * Rotation 0 puts an item's back against the top wall; 90 right wall, 180 bottom, 270 left.
+ */
+const S = { linen: '#D9CCB6', oak: '#C49A6C', walnut: '#8B6B4E', rug: '#E6D8C3', lamp: '#F1E3B9', sage: '#A7B59A', clay: '#C9A27E', bed: '#E8DFD0' };
+const STARTER = {
+  // 126 (Lower): entry and living room.
+  '126': [
+    ['Rug 8 x 5 ft', 244, 152, 1, 240, 175, 0, 'rect', S.rug, 'rugs', 'rug'],
+    ['Sofa', 213, 91, 86, 240, 52, 0, 'rect', S.linen, 'furniture', 'sofa'],
+    ['Coffee table', 107, 61, 46, 240, 175, 0, 'rect', S.oak, 'furniture'],
+    ['Armchair', 81, 86, 86, 110, 185, 270, 'rect', '#CDBFA6', 'furniture', 'armchair'],
+    ['Side table', 46, 46, 56, 110, 32, 0, 'rect', S.oak, 'furniture'],
+    ['Floor lamp', 40, 40, 165, 372, 35, 0, 'circle', S.lamp, 'lighting', 'lamp'],
+    ['TV stand', 152, 41, 56, 240, 388, 180, 'rect', S.walnut, 'furniture'],
+    ['TV (55 in)', 123, 8, 71, 240, 392, 180, 'rect', '#3A3530', 'furniture', 'tv'],
+    ['Floor cushion', 61, 61, 15, 378, 130, 0, 'rect', S.clay, 'furniture', 'cushion'],
+    ['Pouf', 46, 46, 41, 300, 290, 0, 'circle', '#CBB89A', 'furniture', 'cushion'],
+    ['Shoe rack', 80, 30, 50, 21, 270, 270, 'rect', S.oak, 'furniture', 'shelves'],
+    ['Coat rack', 50, 50, 180, 32, 105, 0, 'circle', S.walnut, 'furniture'],
+    ['Plant (tall)', 50, 50, 160, 425, 40, 0, 'circle', '#5E7F55', 'plants', 'plant', 'generic'],
+    ['Pothos', 30, 30, 40, 430, 110, 0, 'circle', '#5E8C4A', 'plants', 'plant', 'pothos'],
+    ['Spider plant', 35, 35, 35, 160, 32, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider']
+  ],
+  // 226 (Upper): bedroom and study.
+  '226': [
+    ['Rug 8 x 5 ft', 244, 152, 1, 275, 140, 0, 'rect', S.rug, 'rugs', 'rug'],
+    ['Bed (queen)', 152, 203, 55, 300, 108, 0, 'rect', S.bed, 'furniture', 'bed'],
+    ['Nightstand', 46, 41, 61, 199, 27, 0, 'rect', S.oak, 'furniture'],
+    ['Nightstand', 46, 41, 61, 401, 27, 0, 'rect', S.oak, 'furniture'],
+    ['Macrame wall hanging', 60, 3, 90, 300, 8, 0, 'rect', '#EFE6D6', 'furniture', 'macrame'],
+    ['Desk', 120, 60, 75, 36, 125, 270, 'rect', S.oak, 'furniture'],
+    ['Office chair', 66, 66, 110, 102, 125, 270, 'circle', '#9A958B', 'furniture', 'chair'],
+    ['Bookshelf', 80, 30, 180, 21, 245, 270, 'rect', S.oak, 'furniture', 'shelves'],
+    ['Dresser', 152, 51, 81, 200, 381, 180, 'rect', S.walnut, 'furniture', 'drawers'],
+    ['Floor cushion', 61, 61, 15, 105, 300, 0, 'rect', S.sage, 'furniture', 'cushion'],
+    ['Floor lamp', 40, 40, 165, 110, 205, 0, 'circle', S.lamp, 'lighting', 'lamp'],
+    ['Tradescantia pallida', 30, 30, 30, 199, 27, 0, 'circle', '#7A527F', 'plants', 'plant', 'tradescantia'],
+    ['Callisia fragrans', 35, 35, 45, 425, 150, 0, 'circle', '#7FA36B', 'plants', 'plant', 'callisia'],
+    ['Spider plant', 35, 35, 35, 100, 30, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider'],
+    ['Plant (tall)', 50, 50, 160, 35, 360, 0, 'circle', '#5E7F55', 'plants', 'plant', 'generic']
+  ]
+};
+
+function starterItems(floorId) {
+  return (STARTER[floorId] || []).map(([name, width, depth, height, x, y, rotation, shape, color, layer, decor, plant]) => ({
+    id: uid('it'), type: 'starter', name, x, y, width, depth, height, rotation, shape, color,
+    status: 'keep', room: floorId, price: null, store: '', link: '', priority: 'Should', notes: '',
+    locked: false, layer, decor, plant, disposition: 'Undecided'
+  }));
+}
+
+/** Point on the bottom wall of the measured outline at a given x. */
+function bottomWallY(x) {
+  const [[ax, ay], [bx, by]] = [MEASURED_CORNERS[3], MEASURED_CORNERS[2]];
+  return ay + ((x - ax) / (bx - ax)) * (by - ay);
+}
+
+/**
+ * Seed defaults once per project: the measured outline on floors without walls,
+ * then a starter layout (staircase on both floors, entry door on 126, and
+ * furniture) wherever a floor or layout is still empty.
+ */
 function seedDefaults(p) {
-  if (p.meta.defaultsSeeded) return;
-  for (const f of p.floors) if (!f.walls.length) f.walls = measuredWalls();
-  p.meta.defaultsSeeded = true;
+  if (!p.meta.defaultsSeeded) {
+    for (const f of p.floors) if (!f.walls.length) f.walls = measuredWalls();
+    p.meta.defaultsSeeded = true;
+  }
+  if (p.meta.layoutSeeded) return;
+  const linkId = uid('link');
+  const stairsLinked = p.floors.find(f => f.fixed.some(e => e.type === 'stairs'))?.fixed.find(e => e.type === 'stairs');
+  for (const f of p.floors) {
+    if (!stairsLinked) {
+      f.fixed.push({ id: uid('fx'), type: 'stairs', name: 'Staircase', x: 409, y: 320, width: 90, depth: 200, height: 0, rotation: 0, shape: 'rect', locked: false, notes: '', stairStyle: 'winding', stairTurn: 'right', linkId });
+    }
+    if (f.id === '126' && !f.fixed.some(e => e.type === 'door')) {
+      const wallAngle = (Math.atan2(MEASURED_CORNERS[3][1] - MEASURED_CORNERS[2][1], MEASURED_CORNERS[3][0] - MEASURED_CORNERS[2][0]) * 180) / Math.PI;
+      f.fixed.push({ id: uid('fx'), type: 'door', name: 'Entry door', x: 80, y: Math.round(bottomWallY(80) * 10) / 10, width: 81, depth: 5, height: 203, rotation: Math.round(((wallAngle % 360) + 360) % 360 * 10) / 10, shape: 'rect', locked: false, notes: '', hinge: 'right', swing: 'in', entry: true });
+    }
+    const sc = f.scenarios.find(s => s.id === f.activeScenario) || f.scenarios[0];
+    if (sc && !sc.items.length) sc.items = starterItems(f.id);
+  }
+  p.meta.layoutSeeded = true;
 }
 
 /** Starter project: two floors with the measured outline, no furniture. */
