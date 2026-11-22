@@ -118,11 +118,11 @@ function planWalls(floorId) {
     const a = ALCOVE;
     return [
       ...mainRoom(457, true),
-      // North wall with the kitchen alcove.
-      seg(0, 0, a.x1, 0), seg(a.x1, 0, a.x1, -a.depth), seg(a.x1, -a.depth, a.x2, -a.depth), seg(a.x2, -a.depth, a.x2, 0), seg(a.x2, 0, W, 0),
+      // North wall: one straight wall. The kitchen is open to the room, no partitions.
+      seg(0, 0, W, 0),
       // Entry hall (west) and staircase (east) north of the room.
       seg(0, 0, 0, -NORTH), seg(0, -NORTH, 15, -NORTH), seg(100, -NORTH, W, -NORTH), seg(W, -NORTH, W, 0),
-      seg(a.x1, -a.depth, a.x1, -NORTH), seg(a.x2, -a.depth, a.x2, -NORTH),
+      seg(a.x1, 0, a.x1, -NORTH), seg(a.x2, 0, a.x2, -NORTH),
       // Brick alcove behind the 85 cm arch.
       seg(-15, -NORTH, -15, -NORTH - 147), seg(-15, -NORTH - 147, 130, -NORTH - 147), seg(130, -NORTH - 147, 130, -NORTH),
       seg(-15, -NORTH, 15, -NORTH), seg(100, -NORTH, 130, -NORTH)
@@ -151,9 +151,9 @@ function planFixed(floorId, linkId) {
       fx('door', 'Door to entry hall', 62.5, 0, 81, 5, 0, { hinge: 'left', swing: 'out', height: 203 }),
       fx('door', 'Door to stairs', 350, 0, 76, 5, 0, { hinge: 'right', swing: 'out', height: 203 }),
       fx('door', 'Building door', -15, -NORTH - 80, 81, 5, 90, { hinge: 'left', swing: 'in', height: 203, entry: true }),
-      fx('fridge', 'Fridge', 150, -40, 60, 60, 0, { height: 150 }),
-      fx('counter', 'Counter', 202, -38, 44, 64, 0, { height: 91 }),
-      fx('stove', 'Stove (microwave above)', 262, -39, 76, 62, 0, { height: 91 }),
+      fx('fridge', 'Fridge', 150, 36, 60, 60, 0, { height: 150 }),
+      fx('counter', 'Counter', 202, 38, 44, 64, 0, { height: 91 }),
+      fx('stove', 'Stove (microwave above)', 262, 37, 76, 62, 0, { height: 91 }),
       fx('window', 'Window (AC unit)', W, 300, 150, 12, 90, { height: 120 }),
       fx('ac', 'AC unit (in window)', W - 14, 330, 60, 18, 90, { height: 40 }),
       fx('window', 'Window', 260, len, 150, 12, 180, { height: 120 }),
@@ -254,6 +254,30 @@ function seedDefaults(p) {
   p.meta.planV5 = true;
 }
 
+/**
+ * planV6: the 126 kitchen is open to the room (no alcove walls, no doors).
+ * Only the kitchen walls and the three appliances are changed, and only if
+ * they are still where the previous default put them. Furniture is never touched.
+ */
+function fixOpenKitchen(p) {
+  if (p.meta.planV6) return;
+  const f = p.floors.find(x => x.id === '126');
+  const a = ALCOVE;
+  const is = (w, x1, y1, x2, y2) => Math.abs(w.x1 - x1) < 0.5 && Math.abs(w.y1 - y1) < 0.5 && Math.abs(w.x2 - x2) < 0.5 && Math.abs(w.y2 - y2) < 0.5;
+  const alcove = [[0, 0, a.x1, 0], [a.x1, 0, a.x1, -a.depth], [a.x1, -a.depth, a.x2, -a.depth], [a.x2, -a.depth, a.x2, 0], [a.x2, 0, W, 0]];
+  if (f && alcove.every(c => f.walls.some(w => is(w, ...c)))) {
+    f.walls = f.walls.filter(w => !alcove.some(c => is(w, ...c)));
+    f.walls.push(seg(0, 0, W, 0));
+    for (const w of f.walls) {
+      if (is(w, a.x1, -a.depth, a.x1, -NORTH)) w.y1 = 0;
+      if (is(w, a.x2, -a.depth, a.x2, -NORTH)) w.y1 = 0;
+    }
+    const moved = { fridge: 36, counter: 38, stove: 37 };
+    for (const e of f.fixed) if (moved[e.type] != null && e.y < 0) e.y = moved[e.type];
+  }
+  p.meta.planV6 = true;
+}
+
 /** Starter project: both floors with the default plan and starter furniture. */
 export function createEmptyProject() {
   const p = {
@@ -266,6 +290,7 @@ export function createEmptyProject() {
     meta: { createdAt: Date.now(), updatedAt: Date.now() }
   };
   seedDefaults(p);
+  fixOpenKitchen(p);
   return p;
 }
 
@@ -397,6 +422,7 @@ function normalize(p) {
   p.tomb = p.tomb && typeof p.tomb === 'object' ? p.tomb : {};
   p.meta = Object.assign({ createdAt: Date.now(), updatedAt: Date.now() }, p.meta || {});
   seedDefaults(p);
+  fixOpenKitchen(p);
   p.schemaVersion = SCHEMA_VERSION;
   return p;
 }
