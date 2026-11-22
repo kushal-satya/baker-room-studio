@@ -781,9 +781,10 @@ export class PlanCanvas {
     const gridRect = s('rect', { x: -50000, y: -50000, width: 100000, height: 100000, fill: `url(#${pid}gmin)` }, viewport);
     const gridMajor = s('rect', { x: -50000, y: -50000, width: 100000, height: 100000, fill: `url(#${pid}gmaj)` }, viewport);
     const bg = s('g', { class: 'bg' }, viewport);
+    const ghost = s('g', { class: 'ghost', 'pointer-events': 'none' }, viewport);
     const world = s('g', { class: 'world' }, viewport);
     const overlay = s('g', { class: 'overlay' }, svg);
-    const pane = { pid, svg, style, defs, minPat, minPath, majPat, majPath, viewport, gridRect, gridMajor, bg, world, overlay, interactive, bgKey: '' };
+    const pane = { pid, svg, style, defs, minPat, minPath, majPat, majPath, viewport, gridRect, gridMajor, bg, ghost, world, overlay, interactive, bgKey: '' };
     svg.addEventListener('pointerdown', e => this.onDown(e, pane));
     svg.addEventListener('pointermove', e => this.onMove(e, pane));
     svg.addEventListener('pointerup', e => this.onUp(e, pane));
@@ -821,6 +822,7 @@ export class PlanCanvas {
       p.svg.classList.toggle('sketch', !!this.settings.sketch);
     }
     renderWorld(this.main.world, floor, sc, this.makeCtx(floor, 'm'));
+    this.renderGhost(this.main, floor);
     this.renderBg(this.main, floor);
     if (this.compareId) {
       const csc = floor.scenarios.find(x => x.id === this.compareId);
@@ -833,6 +835,22 @@ export class PlanCanvas {
     }
     this.selection = this.selection.filter(sel => findEntity(this.st, this.store.floorId, sel));
     this.applyView();
+  }
+
+  /** The other floor's walls and staircase, faint and dashed: the two floors sit directly on top of each other. */
+  renderGhost(pane, floor) {
+    const g = pane.ghost;
+    g.replaceChildren();
+    if (this.settings.showOtherFloor === false) return;
+    const other = this.st.floors.find(f => f.id !== floor.id);
+    if (!other) return;
+    const pal = this.pal;
+    for (const w of other.walls) {
+      s('line', { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2, stroke: pal.sub, 'stroke-width': 1.5, 'stroke-dasharray': '6 5', opacity: 0.45, 'vector-effect': 'non-scaling-stroke' }, g);
+    }
+    for (const e of other.fixed.filter(x => x.type === 'stairs' || x.type === 'window' || x.type === 'door')) {
+      s('polygon', { points: worldPoly(e).map(q => `${q.x},${q.y}`).join(' '), fill: 'none', stroke: pal.sub, 'stroke-width': 1, 'stroke-dasharray': '3 4', opacity: 0.4, 'vector-effect': 'non-scaling-stroke' }, g);
+    }
   }
 
   renderBg(pane, floor) {

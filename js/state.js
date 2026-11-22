@@ -55,6 +55,7 @@ export function defaultSettings() {
     snap: true,
     rulers: true,
     labels: true,
+    showOtherFloor: true,
     clearance: false,
     sketch: false,
     theme: 'auto',
@@ -568,6 +569,70 @@ function planV9(p) {
   p.meta.planV9 = true;
 }
 
+/*
+ * planV10: a "Best case" layout on each floor, built from the same inventory
+ * as "Current (as is)", with nothing overlapping, door swings and the kitchen
+ * aisle kept clear, and tall items kept out of the sloped areas on 226.
+ * Existing layouts are not changed.
+ */
+const BEST = {
+  '126': [
+    ['Kitchen vinyl floor', 421, 206, 0],
+    ['Striped rug', 205, 215, 90],
+    ['Sofa', 210, 355.5, 180, { status: 'move' }],
+    ['Armchair', 66, 140, 270, { status: 'move' }],
+    ['Side table', 85, 380, 0, { status: 'move' }],
+    ['Coffee table', 420, 375, 0, { status: 'move', notes: 'Best case: side table by the closet once the centre table arrives.' }],
+    ['Kitchen island (drop-leaf table)', 365, 206, 0, { status: 'move', notes: 'Shifted for a 45 cm aisle in front of the counters.' }],
+    ['Bar stool', 345, 290, 0, { status: 'move' }], ['Bar stool', 392, 290, 0, { status: 'move' }],
+    ['Drop-leaf table', 545, 357, 90, { status: 'remove', notes: 'Dining table: on your Things to get rid of list. Stored in the closet until then.' }],
+    ['Dining chair', 70, 60, 0, { status: 'move', notes: 'At A.' }], ['Dining chair', 390, 60, 0, { status: 'move', notes: "At A'." }],
+    ['Shelving and storage', 28.5, 345, 0, { status: 'move' }],
+    ['Plant shelf', 345, 386, 180, { status: 'move' }], ['Pothos', 345, 386, 0],
+    ['Plant (medium)', 330, 50, 0, { status: 'move' }], ['Plant (medium)', 115, 50, 0, { status: 'move' }],
+    ['Spider plant', 25, 40, 0, { status: 'move' }]
+  ],
+  '226': [
+    ['Bed (full)', 250, 305.5, 180, { status: 'move' }],
+    ['Nightstand', 155, 380.5, 180, { status: 'move' }],
+    ['Nightstand desk', 365, 384.5, 180, { status: 'move' }],
+    ['Desk', 60, 31, 0, { status: 'move', notes: 'Top-left corner: 75 cm desk fits under the 108 cm knee wall.' }],
+    ['Office chair', 60, 85, 0, { status: 'move' }],
+    ['Round rug', 110, 230, 0, { status: 'move' }],
+    ['Towel rack', 232, 105, 0],
+    ['Floor mirror', 452, 155, 90, { status: 'move', notes: 'Hang on the closet door: too tall to lean under the slopes.' }],
+    ['Elephant wall hanging', 8, 365, 270, { status: 'move' }],
+    ['Plant (medium)', 30, 345, 0, { status: 'move' }]
+  ]
+};
+const BEST_BUY_126 = [
+  ['TV stand', 152, 41, 56, 232, 105, 0, { status: 'buy', priority: 'Should', color: '#6E4B33', notes: 'In front of the fireplace, as in your sketch.' }],
+  ['Centre table (B)', 120, 60, 46, 215, 215, 0, { status: 'buy', priority: 'Must', color: '#C49A6C', notes: 'B in your sketch. 65 cm from the sofa, 46 cm from the chairs.' }],
+  ['Accent chair (2nd)', 81, 86, 86, 66, 245, 270, { status: 'buy', priority: 'Nice', color: '#E7EDF5', decor: 'armchair', notes: 'Second chair by the left window, as in your sketch.' }]
+];
+
+function planV10(p) {
+  if (p.meta.planV10) return;
+  for (const f of p.floors) {
+    if (f.scenarios.some(s => s.name === 'Best case')) continue;
+    const cur = f.scenarios.find(s => s.name === 'Current (as is)') || activeSc(f);
+    if (!cur) continue;
+    const best = { id: uid('sc'), name: 'Best case', notes: [], items: cur.items.map(it => ({ ...clone(it), id: uid('it') })) };
+    placeByName(best.items, BEST[f.id] || []);
+    if (f.id === '126') {
+      for (const [name, width, depth, height, x, y, rotation, extra] of BEST_BUY_126) {
+        best.items.push({
+          id: uid('it'), type: 'starter', name, x, y, width, depth, height, rotation, shape: 'rect', color: '#C49A6C',
+          status: 'keep', room: '126', price: null, store: '', link: '', priority: 'Should', notes: '',
+          locked: false, layer: 'furniture', disposition: 'Undecided', ...extra
+        });
+      }
+    }
+    f.scenarios.push(best);
+  }
+  p.meta.planV10 = true;
+}
+
 /** Starter project: both floors with the default plan and starter furniture. */
 export function createEmptyProject() {
   const p = {
@@ -584,6 +649,7 @@ export function createEmptyProject() {
   fixKitchenAndAlcove(p);
   planV8(p);
   planV9(p);
+  planV10(p);
   return p;
 }
 
@@ -719,6 +785,7 @@ function normalize(p) {
   fixKitchenAndAlcove(p);
   planV8(p);
   planV9(p);
+  planV10(p);
   p.schemaVersion = SCHEMA_VERSION;
   return p;
 }
