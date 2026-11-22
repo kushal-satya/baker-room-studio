@@ -477,6 +477,97 @@ function planV8(p) {
   p.meta.planV8 = true;
 }
 
+/*
+ * planV9: right side of 126 from the photos and measurements.
+ * The room's right wall, top to bottom: arched doorway to the entry hall,
+ * the kitchen recess (202 cm wide = 95 + 107, about 68 cm deep: fridge,
+ * base cabinet, stove with the microwave above), then the closet door.
+ * The staircase runs directly behind the kitchen and starts from the hall.
+ * The hall runs right from the doorway: brick arch on its top wall (to the
+ * alcove and building door), washroom door with the mirror at its far end.
+ * Vinyl floor: the recess plus 134 cm in front of the counters.
+ * Only walls, doors, appliances, the staircase, the vinyl floor and the trash
+ * can are adjusted. Other furniture is never touched.
+ */
+const V9 = { W: 457, H: 407, RECESS_X: 525, STAIR_X: 627, HALL_END: 707, K1: 105, K2: 307 };
+
+function v9Walls(floorId) {
+  const { W: w, H: h, RECESS_X: rx, STAIR_X: sx, HALL_END: he, K1: k1, K2: k2 } = V9;
+  const b1 = 135, b2 = 329, bd = 31;
+  const room = [
+    seg(0, 0, b1, 0), seg(b1, 0, b1, bd), seg(b1, bd, b2, bd), seg(b2, bd, b2, 0), seg(b2, 0, w, 0),
+    seg(0, 0, 0, h), seg(0, h, w, h)
+  ];
+  if (floorId === '126') {
+    return [
+      ...room,
+      // Room right wall: doorway section, kitchen recess, closet section.
+      seg(w, 0, w, k1), seg(w, k1, rx, k1), seg(rx, k1, rx, k2), seg(rx, k2, w, k2), seg(w, k2, w, h),
+      // Entry hall with the arch on its top wall, and the alcove above.
+      seg(w, 0, 545, 0), seg(630, 0, he, 0), seg(he, 0, he, k1), seg(sx, k1, he, k1),
+      seg(515, 0, 515, -147), seg(515, -147, 660, -147), seg(660, -147, 660, 0),
+      // Staircase behind the kitchen, closet below it.
+      seg(sx, k1, sx, h), seg(rx, k2, sx, k2), seg(w, h, sx, h)
+    ];
+  }
+  return [
+    ...room, seg(w, 0, w, h),
+    // Closet and stair landing beside the stairwell.
+    seg(w, k1, sx, k1), seg(sx, k1, sx, k2), seg(sx, k2, w, k2), seg(w, 200, rx + 6, 200), seg(rx + 6, k1, rx + 6, 200)
+  ];
+}
+
+function v9Fixed(floorId, linkId) {
+  const { W: w, H: h } = V9;
+  const out = [
+    fx('stairs', 'Staircase', 576, 206, 90, 190, 0, { stairStyle: 'winding', stairTurn: 'left', linkId }),
+    fx('fireplace', 'Fireplace and mantel', 232, 60, 152, 46, 0, { height: 110 })
+  ];
+  if (floorId === '126') {
+    out.push(
+      fx('door', 'Arched doorway to hall', w, 53, 90, 5, 90, { hinge: 'left', swing: 'out', height: 210 }),
+      fx('door', 'Closet door', w, 355, 76, 5, 90, { hinge: 'left', swing: 'out', height: 203 }),
+      fx('door', 'Washroom door (mirror)', V9.HALL_END, 52, 76, 5, 90, { hinge: 'right', swing: 'in', height: 203 }),
+      fx('door', 'Building door', 515, -80, 81, 5, 90, { hinge: 'left', swing: 'out', height: 203, entry: true }),
+      fx('fridge', 'Fridge', 489, 141, 60, 60, 90, { height: 150 }),
+      fx('counter', 'Base cabinet and counter', 487, 193, 44, 64, 90, { height: 91 }),
+      fx('stove', 'Stove (microwave above)', 488, 253, 76, 62, 90, { height: 91 }),
+      fx('window', 'Window (AC unit)', 0, 210, 160, 12, 270, { height: 120 }),
+      fx('ac', 'AC unit (in window)', 14, 250, 60, 18, 270, { height: 40 }),
+      fx('window', 'Window', 246, h, 160, 12, 180, { height: 120 }),
+      fx('radiator', 'Radiator', 246, h - 13, 150, 15, 180, { height: 60 })
+    );
+  } else {
+    out.push(
+      fx('door', 'Closet door', w, 155, 76, 5, 90, { hinge: 'left', swing: 'in', height: 203 }),
+      fx('door', 'Door to stairs', w, 255, 81, 5, 90, { hinge: 'right', swing: 'in', height: 203 }),
+      fx('window', 'Window', 0, 200, 230, 12, 270, { height: 120 }),
+      fx('radiator', 'Radiator', 13, 200, 230, 15, 270, { height: 60 }),
+      fx('window', 'Stair window', V9.STAIR_X, 160, 90, 12, 90, { height: 120 })
+    );
+  }
+  return out;
+}
+
+function planV9(p) {
+  if (p.meta.planV9) return;
+  const linkId = uid('link');
+  const near = (a, b) => Math.abs(a - b) < 0.5;
+  for (const f of p.floors) {
+    f.walls = v9Walls(f.id);
+    f.fixed = v9Fixed(f.id, linkId);
+    if (f.id !== '126') continue;
+    for (const sc of f.scenarios) {
+      for (const it of sc.items) {
+        if (it.type !== 'starter') continue;
+        if (it.name === 'Kitchen vinyl floor' && near(it.x, 523) && near(it.y, 215)) Object.assign(it, { x: 421, y: 206, width: 198, depth: 202 });
+        if (it.name === 'Trash can' && near(it.x, 500) && near(it.y, 22)) Object.assign(it, { x: 478, y: 22 });
+      }
+    }
+  }
+  p.meta.planV9 = true;
+}
+
 /** Starter project: both floors with the default plan and starter furniture. */
 export function createEmptyProject() {
   const p = {
@@ -492,6 +583,7 @@ export function createEmptyProject() {
   fixOpenKitchen(p);
   fixKitchenAndAlcove(p);
   planV8(p);
+  planV9(p);
   return p;
 }
 
@@ -626,6 +718,7 @@ function normalize(p) {
   fixOpenKitchen(p);
   fixKitchenAndAlcove(p);
   planV8(p);
+  planV9(p);
   p.schemaVersion = SCHEMA_VERSION;
   return p;
 }
