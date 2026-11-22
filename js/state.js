@@ -278,6 +278,41 @@ function fixOpenKitchen(p) {
   p.meta.planV6 = true;
 }
 
+/**
+ * planV7: the 126 kitchen fills the space between the entry hall and the
+ * stairs and is open to the room (no wall in front of it). Counters sit on
+ * its back wall with the vinyl floor in front. The brick alcove sits straight
+ * above the hall. Only these walls, the appliances, the building door and the
+ * vinyl floor are adjusted, and only if they are where the previous default
+ * put them. Other furniture is never touched.
+ */
+function fixKitchenAndAlcove(p) {
+  if (p.meta.planV7) return;
+  const f = p.floors.find(x => x.id === '126');
+  const near = (a, b) => Math.abs(a - b) < 0.5;
+  const is = (w, x1, y1, x2, y2) => near(w.x1, x1) && near(w.y1, y1) && near(w.x2, x2) && near(w.y2, y2);
+  if (f) {
+    const front = f.walls.find(w => is(w, 0, 0, W, 0));
+    if (front) {
+      f.walls = f.walls.filter(w => w !== front);
+      f.walls.push(seg(0, 0, ALCOVE.x1, 0), seg(ALCOVE.x2, 0, W, 0));
+    }
+    const oldAlcove = [[-15, -NORTH, -15, -NORTH - 147], [-15, -NORTH - 147, 130, -NORTH - 147], [130, -NORTH - 147, 130, -NORTH], [-15, -NORTH, 15, -NORTH], [100, -NORTH, 130, -NORTH]];
+    if (oldAlcove.every(c => f.walls.some(w => is(w, ...c)))) {
+      f.walls = f.walls.filter(w => !oldAlcove.some(c => is(w, ...c)));
+      f.walls.push(seg(0, -NORTH, 0, -NORTH - 147), seg(0, -NORTH - 147, 145, -NORTH - 147), seg(145, -NORTH - 147, 145, -NORTH));
+      const door = f.fixed.find(e => e.type === 'door' && e.name === 'Building door' && near(e.x, -15));
+      if (door) door.x = 0;
+    }
+    const back = { fridge: -166, counter: -164, stove: -165 };
+    for (const e of f.fixed) if (back[e.type] != null && e.y > 0 && e.y < 60) e.y = back[e.type];
+    const sc = f.scenarios.find(x => x.id === f.activeScenario) || f.scenarios[0];
+    const vinyl = sc && sc.items.find(it => it.type === 'starter' && it.name === 'Kitchen vinyl floor' && near(it.x, 210) && near(it.y, 67));
+    if (vinyl) Object.assign(vinyl, { y: -67, width: 178 });
+  }
+  p.meta.planV7 = true;
+}
+
 /** Starter project: both floors with the default plan and starter furniture. */
 export function createEmptyProject() {
   const p = {
@@ -291,6 +326,7 @@ export function createEmptyProject() {
   };
   seedDefaults(p);
   fixOpenKitchen(p);
+  fixKitchenAndAlcove(p);
   return p;
 }
 
@@ -423,6 +459,7 @@ function normalize(p) {
   p.meta = Object.assign({ createdAt: Date.now(), updatedAt: Date.now() }, p.meta || {});
   seedDefaults(p);
   fixOpenKitchen(p);
+  fixKitchenAndAlcove(p);
   p.schemaVersion = SCHEMA_VERSION;
   return p;
 }
