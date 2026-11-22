@@ -128,8 +128,10 @@ const STARTER = {
     ['TV (55 in)', 123, 8, 71, 432, 112, 90, 'rect', '#3A3530', 'furniture', 'tv'],
     ['Floor cushion', 61, 61, 15, 360, 132, 0, 'rect', S.clay, 'furniture', 'cushion'],
     ['Pouf', 46, 46, 41, 120, 290, 0, 'circle', '#CBB89A', 'furniture', 'cushion'],
-    ['Shoe rack', 80, 30, 50, 21, 230, 270, 'rect', S.oak, 'furniture', 'shelves'],
-    ['Coat rack', 50, 50, 180, 32, 105, 0, 'circle', S.walnut, 'furniture'],
+    ['Shoe rack', 80, 30, 50, -215, 320, 0, 'rect', S.oak, 'furniture', 'shelves'],
+    ['Coat rack', 50, 50, 180, -255, 370, 0, 'circle', S.walnut, 'furniture'],
+    ['Trash can', 30, 30, 60, -30, 432, 0, 'circle', '#9C948A', 'furniture'],
+    ['Bookshelf', 80, 30, 180, 21, 230, 270, 'rect', S.oak, 'furniture', 'shelves'],
     ['Plant (tall)', 50, 50, 160, 32, 35, 0, 'circle', '#5E7F55', 'plants', 'plant', 'generic'],
     ['Pothos', 30, 30, 40, 140, 355, 0, 'circle', '#5E8C4A', 'plants', 'plant', 'pothos'],
     ['Spider plant', 35, 35, 35, 30, 165, 0, 'circle', '#7BA05B', 'plants', 'plant', 'spider']
@@ -170,6 +172,36 @@ function fixed126() {
   ];
 }
 
+/*
+ * Entry and kitchen wing of 126, west of the living room (x < 0).
+ * Measured: arch wall 67 cm of brick then an 85 cm arch; the alcove behind the
+ * arch is 126 cm (right side), 145 cm (back) and 169 cm (left side) on the floor.
+ * Kitchen: vinyl floor 134 cm wide, 202 cm from wall to wall, counter run of
+ * 158 cm, a 28 cm gap, then 106 cm. Hall depth (150 cm) and the way the rooms
+ * join are estimates: drag the walls if they differ.
+ */
+const WING_WALLS = [
+  // Entry hall: north wall, west wall split by the arch, short east wall below the living room.
+  [[0, 232], [-150, 232]], [[-150, 232], [-150, 299]], [[-150, 384], [-150, 451]], [[0, 404], [0, 451]],
+  // Alcove behind the arch.
+  [[-150, 299], [-276, 299]], [[-276, 299], [-309.4, 440.1]], [[-309.4, 440.1], [-150, 384]],
+  // Kitchen galley south of the hall (its top wall is the hall's south wall).
+  [[0, 451], [-202, 451]], [[-202, 451], [-202, 755]], [[-202, 755], [0, 755]], [[0, 755], [0, 451]]
+];
+
+function wingFixed() {
+  const base = { height: 0, shape: 'rect', locked: false, notes: '' };
+  return [
+    { ...base, id: uid('fx'), type: 'door', name: 'Door to kitchen', x: -100, y: 451, width: 76, depth: 5, height: 203, rotation: 0, hinge: 'left', swing: 'out' },
+    { ...base, id: uid('fx'), type: 'door', name: 'Door with mirror', x: -75, y: 232, width: 81, depth: 5, height: 203, rotation: 180, hinge: 'right', swing: 'out', notes: 'Leads to a room not drawn yet' },
+    { ...base, id: uid('fx'), type: 'door', name: 'Building door', x: -250, y: 419.2, width: 81, depth: 5, height: 203, rotation: 340.6, hinge: 'left', swing: 'in', notes: 'Door to the building corridor and exit' },
+    { ...base, id: uid('fx'), type: 'fridge', name: 'Fridge', x: -158, y: 495, width: 76, depth: 76, height: 178, rotation: 270 },
+    { ...base, id: uid('fx'), type: 'counter', name: 'Counter and cabinets', x: -162, y: 574, width: 82, depth: 68, height: 91, rotation: 270 },
+    { ...base, id: uid('fx'), type: 'counter', name: 'Counter', x: -162, y: 658, width: 30, depth: 68, height: 91, rotation: 270 },
+    { ...base, id: uid('fx'), type: 'stove', name: 'Stove (microwave above)', x: -163, y: 711, width: 76, depth: 66, height: 91, rotation: 270 }
+  ];
+}
+
 const activeSc = f => f.scenarios.find(s => s.id === f.activeScenario) || f.scenarios[0];
 
 /**
@@ -205,6 +237,16 @@ function seedDefaults(p) {
       }
     }
     p.meta.room126v2 = true;
+  }
+  if (!p.meta.room126v3) {
+    const f = p.floors.find(x => x.id === '126');
+    if (f && !f.fixed.some(e => e.type === 'fridge' || e.type === 'stove')) {
+      for (const [[x1, y1], [x2, y2]] of WING_WALLS) f.walls.push({ id: uid('w'), x1, y1, x2, y2, thickness: 12 });
+      f.fixed.push(...wingFixed());
+      const sc = activeSc(f);
+      if (sc && sc.items.every(it => it.type === 'starter')) sc.items = starterItems('126');
+    }
+    p.meta.room126v3 = true;
   }
 }
 
